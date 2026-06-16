@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>CISCSections</AssemblyName>
+    <RootNamespace>CISCSections</RootNamespace>
+    <UseWindowsForms>true</UseWindowsForms>
+    <PlatformTarget>x64</PlatformTarget>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <!--
+      Set AcadDir to your AutoCAD installation folder.
+      Common paths:
+        AutoCAD 2024: C:\Program Files\Autodesk\AutoCAD 2024
+        AutoCAD 2023: C:\Program Files\Autodesk\AutoCAD 2023
+        AutoCAD 2022: C:\Program Files\Autodesk\AutoCAD 2022
+    -->
+    <AcadDir Condition="'$(AcadDir)'==''">C:\Program Files\Autodesk\AutoCAD 2027</AcadDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- AutoCAD .NET API references — Copy Local = false so they are NOT bundled with the DLL -->
+    <Reference Include="acdbmgd">
+      <HintPath>$(AcadDir)\acdbmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acmgd">
+      <HintPath>$(AcadDir)\acmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="accoremgd">
+      <HintPath>$(AcadDir)\accoremgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

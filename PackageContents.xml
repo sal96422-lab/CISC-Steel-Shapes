@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage
+    SchemaVersion   = "1.0"
+    ProductCode     = "{9F3B2A1C-4D7E-4F8A-B2C3-1E5F6A7B8C9D}"
+    Name            = "CISC Metric Sections"
+    Description     = "Insert CISC metric steel sections (W, C, L, HSS) with cross-section, side, and top views"
+    Author          = "CISC Plugin"
+    Version         = "1.0.0">
+
+  <CompanyDetails Name="CISC Plugin" />
+
+  <RuntimeRequirements
+      OS          = "Win64"
+      Platform    = "AutoCAD"
+      SeriesMin   = "R19.0"
+      SeriesMax   = "*" />
+
+  <Components>
+    <ComponentEntry
+        AppName                = "CISCSections"
+        ModuleName             = "./Contents/CISCSections.dll"
+        AppDescription         = "CISC Metric Sections — insert structural steel section symbols"
+        LoadOnCommandInvocation= "false"
+        LoadOnAutoCADStartup   = "true">
+
+      <Commands GroupName="CISCSections">
+        <Command Local="CISCINSERT" Global="CISCINSERT" />
+      </Commands>
+
+    </ComponentEntry>
+  </Components>
+
+</ApplicationPackage>
