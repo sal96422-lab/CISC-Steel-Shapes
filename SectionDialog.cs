@@ -9,23 +9,24 @@ namespace CISCSections
     public class SectionDialog : Form
     {
         // Controls
-        private ComboBox   _cboType;
-        private ComboBox   _cboSize;
+        private ComboBox    _cboType;
+        private ComboBox    _cboSize;
         private RadioButton _rbCross;
         private RadioButton _rbSide;
         private RadioButton _rbTop;
-        private CheckBox   _chkHidden;
-        private TextBox    _txtLength;
-        private Label      _lblLength;
-        private Label      _lblProps;
-        private Button     _btnOK;
-        private Button     _btnCancel;
+        private ComboBox    _cboCrossRef;
+        private Label       _lblCrossRef;
+        private CheckBox    _chkHidden;
+        private Label       _lblProps;
+        private Button      _btnOK;
+        private Button      _btnCancel;
 
         // Results read by the command after OK
         public SectionProperties SelectedSection  { get; private set; }
         public ViewType          SelectedView      { get; private set; }
         public bool              ShowHiddenLines   { get; private set; }
-        public double            BeamLength        { get; private set; }
+        // "Centre" | "Top" | "Bottom"
+        public string            CrossRefPoint     { get; private set; } = "Centre";
 
         public SectionDialog()
         {
@@ -38,7 +39,7 @@ namespace CISCSections
         private void BuildUI()
         {
             Text            = "CISC Metric Section Insert";
-            Size            = new Size(440, 480);
+            Size            = new Size(440, 440);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition   = FormStartPosition.CenterParent;
             MaximizeBox     = false;
@@ -64,18 +65,26 @@ namespace CISCSections
             _rbCross.Checked = true;
             y += 24;
 
+            // Reference point — only relevant for cross-section
+            _lblCrossRef = AddLabel("Pick point:", cx + 18, y + 3);
+            _cboCrossRef = new ComboBox
+            {
+                Location      = new Point(cx + 88, y),
+                Size          = new Size(110, 21),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            _cboCrossRef.Items.AddRange(new object[] { "Centre", "Top", "Bottom" });
+            _cboCrossRef.SelectedIndex = 0;
+            Controls.Add(_cboCrossRef);
+            y += 28;
+
             _rbSide = AddRadio("Side / Elevation View", cx, y);
             y += 24;
 
             _rbTop = AddRadio("Top / Plan View", cx, y);
             y += 32;
 
-            // Length (only for side / top)
-            _lblLength = AddLabel("Beam Length (mm):", lx, y + 3);
-            _lblLength.Enabled = false;
-            _txtLength = new TextBox { Location = new Point(cx, y), Size = new Size(100, 21), Text = "3000", Enabled = false };
-            Controls.Add(_txtLength);
-            y += 34;
+            // note: length is now picked by clicking two points in AutoCAD
 
             // Hidden lines
             _chkHidden = new CheckBox
@@ -111,9 +120,9 @@ namespace CISCSections
             // Wire events
             _cboType.SelectedIndexChanged += (s, e) => OnTypeChanged();
             _cboSize.SelectedIndexChanged += (s, e) => OnSizeChanged();
-            _rbSide.CheckedChanged  += (s, e) => UpdateLengthField();
-            _rbTop.CheckedChanged   += (s, e) => UpdateLengthField();
-            _rbCross.CheckedChanged += (s, e) => UpdateLengthField();
+            _rbCross.CheckedChanged += (s, e) => UpdateRefPoint();
+            _rbSide.CheckedChanged  += (s, e) => UpdateRefPoint();
+            _rbTop.CheckedChanged   += (s, e) => UpdateRefPoint();
             _btnOK.Click += OnOKClick;
         }
 
@@ -199,11 +208,11 @@ namespace CISCSections
             }
         }
 
-        private void UpdateLengthField()
+        private void UpdateRefPoint()
         {
-            bool need = _rbSide.Checked || _rbTop.Checked;
-            _lblLength.Enabled = need;
-            _txtLength.Enabled = need;
+            bool isCross = _rbCross.Checked;
+            _lblCrossRef.Enabled  = isCross;
+            _cboCrossRef.Enabled  = isCross;
         }
 
         // ─── OK validation ──────────────────────────────────────────────────
@@ -220,21 +229,7 @@ namespace CISCSections
 
             SelectedView    = _rbSide.Checked ? ViewType.SideView : _rbTop.Checked ? ViewType.TopView : ViewType.CrossSection;
             ShowHiddenLines = _chkHidden.Checked;
-
-            if (_rbSide.Checked || _rbTop.Checked)
-            {
-                if (!double.TryParse(_txtLength.Text.Trim(), out double len) || len <= 0)
-                {
-                    MessageBox.Show("Enter a positive beam length.", "CISC Sections", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    DialogResult = DialogResult.None;
-                    return;
-                }
-                BeamLength = len;
-            }
-            else
-            {
-                BeamLength = 0;
-            }
+            CrossRefPoint   = _cboCrossRef.SelectedItem?.ToString() ?? "Centre";
         }
     }
 }
