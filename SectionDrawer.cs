@@ -38,8 +38,10 @@ namespace CISCSections
 
         // ─── Public entry point ─────────────────────────────────────────────
 
+        // pivot: point to rotate around (defaults to ip when not supplied)
         public void Draw(SectionProperties s, ViewType view, Point3d ip,
-                         bool showHidden, double beamLength, double angle = 0)
+                         bool showHidden, double beamLength, double angle = 0,
+                         Point3d? pivot = null)
         {
             _created.Clear();
 
@@ -53,10 +55,10 @@ namespace CISCSections
                 case SectionType.HSSCircular:    DrawHSSC (s, view, ip, showHidden, beamLength); break;
             }
 
-            // Rotate all created entities around the start point if needed
             if (Math.Abs(angle) > 1e-10)
             {
-                var mat = Matrix3d.Rotation(angle, Vector3d.ZAxis, ip);
+                var rotPt = pivot ?? ip;
+                var mat   = Matrix3d.Rotation(angle, Vector3d.ZAxis, rotPt);
                 foreach (var id in _created)
                     ((Entity)_tr.GetObject(id, OpenMode.ForWrite)).TransformBy(mat);
             }
@@ -253,13 +255,15 @@ namespace CISCSections
             {
                 double x0 = ip.X, y0 = ip.Y;
                 AddRect(x0, y0, L, H, VIS_LAYER);
-                if (hidden) HLine(x0, x0+L, y0+t, HIDDEN_LAYER);
+                string iLyr = hidden ? HIDDEN_LAYER : VIS_LAYER;
+                HLine(x0, x0+L, y0+t, iLyr);
             }
             else // TopView
             {
                 double x0 = ip.X, y0 = ip.Y;
                 AddRect(x0, y0, L, B, VIS_LAYER);
-                if (hidden) HLine(x0, x0+L, y0+t, HIDDEN_LAYER);
+                string iLyr = hidden ? HIDDEN_LAYER : VIS_LAYER;
+                HLine(x0, x0+L, y0+t, iLyr);
             }
         }
 

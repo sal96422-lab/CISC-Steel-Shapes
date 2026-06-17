@@ -25,13 +25,19 @@ namespace CISCSections
         public SectionProperties SelectedSection  { get; private set; }
         public ViewType          SelectedView      { get; private set; }
         public bool              ShowHiddenLines   { get; private set; }
-        // "Centre" | "Top" | "Bottom"
-        public string            CrossRefPoint     { get; private set; } = "Centre";
+        public string            RefPoint          { get; private set; } = "Centre";
+
+        // Remember last used section across dialog instances
+        private static int    _lastTypeIndex    = 0;
+        private static string _lastSectionName  = null;
+        private static int    _lastRefIndex     = 0;
+        private static int    _lastViewIndex    = 0; // 0=Cross, 1=Side, 2=Top
 
         public SectionDialog()
         {
             BuildUI();
             PopulateTypeCombo();
+            RestoreLastSelection();
         }
 
         // ─── UI construction ────────────────────────────────────────────────
@@ -52,9 +58,21 @@ namespace CISCSections
             _cboType = AddCombo(cx, y, cw);
             y += 34;
 
-            // Section Size
+            // Section Size — typeable with auto-complete across all section types
             AddLabel("Section Size:", lx, y + 3);
-            _cboSize = AddCombo(cx, y, cw);
+            _cboSize = new ComboBox
+            {
+                Location           = new Point(cx, y),
+                Size               = new Size(cw, 21),
+                DropDownStyle      = ComboBoxStyle.DropDown,
+                AutoCompleteMode   = AutoCompleteMode.Suggest,
+                AutoCompleteSource = AutoCompleteSource.CustomSource
+            };
+            // Populate custom source with every section name from all types
+            var allNames = new System.Windows.Forms.AutoCompleteStringCollection();
+            allNames.AddRange(CISCDatabase.Sections.Select(s => s.Name).ToArray());
+            _cboSize.AutoCompleteCustomSource = allNames;
+            Controls.Add(_cboSize);
             y += 34;
 
             // View Type
@@ -65,7 +83,7 @@ namespace CISCSections
             _rbCross.Checked = true;
             y += 24;
 
-            // Reference point — only relevant for cross-section
+            // Reference point — applies to all views
             _lblCrossRef = AddLabel("Pick point:", cx + 18, y + 3);
             _cboCrossRef = new ComboBox
             {
@@ -83,8 +101,6 @@ namespace CISCSections
 
             _rbTop = AddRadio("Top / Plan View", cx, y);
             y += 32;
-
-            // note: length is now picked by clicking two points in AutoCAD
 
             // Hidden lines
             _chkHidden = new CheckBox
@@ -120,9 +136,7 @@ namespace CISCSections
             // Wire events
             _cboType.SelectedIndexChanged += (s, e) => OnTypeChanged();
             _cboSize.SelectedIndexChanged += (s, e) => OnSizeChanged();
-            _rbCross.CheckedChanged += (s, e) => UpdateRefPoint();
-            _rbSide.CheckedChanged  += (s, e) => UpdateRefPoint();
-            _rbTop.CheckedChanged   += (s, e) => UpdateRefPoint();
+            _cboSize.TextChanged          += (s, e) => OnSizeTextChanged();
             _btnOK.Click += OnOKClick;
         }
 
@@ -188,7 +202,57 @@ namespace CISCSections
         {
             var sec = _cboSize.SelectedItem as SectionProperties;
             if (sec == null) { _lblProps.Text = ""; return; }
+            UpdatePropsLabel(sec);
+        }
 
+        // When the user types, try to find a matching section across ALL types
+        private void OnSizeTextChanged()
+        {
+            string txt = _cboSize.Text.Trim();
+            if (string.IsNullOrEmpty(txt)) return;
+
+            // Already matched via SelectedItem
+            if (_cboSize.SelectedItem is SectionProperties sel && sel.Name == txt) return;
+
+            // Search all sections for a match
+            var match = CISCDatabase.Sections.FirstOrDefault(
+                s => s.Name.Equals(txt, StringComparison.OrdinalIgnoreCase));
+            if (match != null)
+            {
+                // Switch type combo to match, which repopulates size list
+                int typeIdx = TypeIndexFor(match.Type);
+                if (_cboType.SelectedIndex != typeIdx)
+                {
+                    _cboType.SelectedIndex = typeIdx; // triggers OnTypeChanged → repopulates
+                }
+                // Select the matching item in the size list
+                for (int i = 0; i < _cboSize.Items.Count; i++)
+                {
+                    if ((_cboSize.Items[i] as SectionProperties)?.Name == match.Name)
+                    {
+                        _cboSize.SelectedIndex = i;
+                        break;
+                    }
+                }
+                UpdatePropsLabel(match);
+            }
+        }
+
+        private static int TypeIndexFor(SectionType t)
+        {
+            switch (t)
+            {
+                case SectionType.SShape:         return 1;
+                case SectionType.Channel:        return 2;
+                case SectionType.Angle:          return 3;
+                case SectionType.HSSRectangular: return 4;
+                case SectionType.HSSCircular:    return 5;
+                default:                         return 0;
+            }
+        }
+
+        private void UpdatePropsLabel(SectionProperties sec)
+        {
             switch (sec.Type)
             {
                 case SectionType.WShape:
@@ -208,28 +272,68 @@ namespace CISCSections
             }
         }
 
-        private void UpdateRefPoint()
+        // ─── Restore / save last selection ──────────────────────────────────
+
+        private void RestoreLastSelection()
         {
-            bool isCross = _rbCross.Checked;
-            _lblCrossRef.Enabled  = isCross;
-            _cboCrossRef.Enabled  = isCross;
+            // Restore type
+            if (_lastTypeIndex >= 0 && _lastTypeIndex < _cboType.Items.Count)
+                _cboType.SelectedIndex = _lastTypeIndex;
+
+            // Restore section name if it exists in the repopulated list
+            if (_lastSectionName != null)
+            {
+                for (int i = 0; i < _cboSize.Items.Count; i++)
+                {
+                    if ((_cboSize.Items[i] as SectionProperties)?.Name == _lastSectionName)
+                    {
+                        _cboSize.SelectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            // Restore view
+            if      (_lastViewIndex == 1) _rbSide.Checked  = true;
+            else if (_lastViewIndex == 2) _rbTop.Checked   = true;
+            else                          _rbCross.Checked  = true;
+
+            // Restore reference point
+            if (_lastRefIndex >= 0 && _lastRefIndex < _cboCrossRef.Items.Count)
+                _cboCrossRef.SelectedIndex = _lastRefIndex;
         }
 
         // ─── OK validation ──────────────────────────────────────────────────
 
         private void OnOKClick(object sender, EventArgs e)
         {
+            // Accept typed name or selected item
             SelectedSection = _cboSize.SelectedItem as SectionProperties;
             if (SelectedSection == null)
             {
-                MessageBox.Show("Please select a section size.", "CISC Sections", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                // Try matching typed text against all sections
+                string txt = _cboSize.Text.Trim();
+                SelectedSection = CISCDatabase.Sections.FirstOrDefault(
+                    s => s.Name.Equals(txt, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (SelectedSection == null)
+            {
+                MessageBox.Show("Section not found. Please select or type a valid section name.",
+                    "CISC Sections", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 DialogResult = DialogResult.None;
                 return;
             }
 
             SelectedView    = _rbSide.Checked ? ViewType.SideView : _rbTop.Checked ? ViewType.TopView : ViewType.CrossSection;
             ShowHiddenLines = _chkHidden.Checked;
-            CrossRefPoint   = _cboCrossRef.SelectedItem?.ToString() ?? "Centre";
+            RefPoint        = _cboCrossRef.SelectedItem?.ToString() ?? "Centre";
+
+            // Save for next time
+            _lastTypeIndex   = TypeIndexFor(SelectedSection.Type);
+            _lastSectionName = SelectedSection.Name;
+            _lastRefIndex    = _cboCrossRef.SelectedIndex;
+            _lastViewIndex   = _rbSide.Checked ? 1 : _rbTop.Checked ? 2 : 0;
         }
     }
 }
