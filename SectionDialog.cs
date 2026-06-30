@@ -33,6 +33,11 @@ namespace CISCSections
         private static int    _lastRefIndex     = 0;
         private static int    _lastViewIndex    = 0; // 0=Cross, 1=Side, 2=Top
 
+        // Exposed for ribbon to read/write in sync
+        public static int LastTypeIndex { get => _lastTypeIndex; set => _lastTypeIndex = value; }
+        public static int LastViewIndex { get => _lastViewIndex; set => _lastViewIndex = value; }
+        public static int LastRefIndex  { get => _lastRefIndex;  set => _lastRefIndex  = value; }
+
         public SectionDialog()
         {
             BuildUI();

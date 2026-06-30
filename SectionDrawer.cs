@@ -181,12 +181,10 @@ namespace CISCSections
             double d = s.d, bf = s.bf, tf = s.tf, tw = s.tw;
             double wx = tw / 2;
 
-            // Standard 1:6 taper slope; tabulated tf is the average flange thickness.
-            double drop   = bf / 12.0;
-            double tfRoot = tf + drop;
-            double tfTip  = Math.Max(2.0, tf - drop);
-            // k is measured from average-thickness flange face; cap so arc fits inside tfRoot
-            double r      = Math.Max(1.0, Math.Min(s.k - tf, tfRoot - 1.0));
+            // t2 = actual root flange thickness from CISC SST; fall back to 1:6 estimate if unset
+            double tfRoot = s.t2 > 0 ? s.t2 : tf + bf / 12.0;
+            double tfTip  = Math.Max(2.0, tf - bf / 12.0);
+            double r      = Math.Max(1.0, s.k - tfRoot);
 
             if (view == ViewType.CrossSection)
             {

@@ -29,6 +29,9 @@ namespace CISCSections
         // fillet distance (W / S / C shapes)
         public double k { get; set; }
 
+        // root flange thickness for tapered-flange shapes (S / C) — T2 from CISC SST
+        public double t2 { get; set; }
+
         // L Angle legs
         public double Hleg { get; set; }
         public double Vleg { get; set; }
@@ -379,38 +382,39 @@ namespace CISCSections
             new SectionProperties { Name="S75x8",     Type=SectionType.SShape, d=76,  bf=59,  tf=6.6,  tw=4.3, k=16 },
 
             // ── C SHAPES / CHANNELS — Full CISC SST 12.1 table ───────────────
-            new SectionProperties { Name="C380x74",   Type=SectionType.Channel, d=381, bf=94, tf=16.5, tw=18.2, k=36 },
-            new SectionProperties { Name="C380x60",   Type=SectionType.Channel, d=381, bf=89, tf=16.5, tw=13.2, k=36 },
-            new SectionProperties { Name="C380x50",   Type=SectionType.Channel, d=381, bf=86, tf=16.5, tw=10.2, k=36 },
-            new SectionProperties { Name="C310x45",   Type=SectionType.Channel, d=305, bf=80, tf=12.7, tw=13.0, k=30 },
-            new SectionProperties { Name="C310x37",   Type=SectionType.Channel, d=305, bf=77, tf=12.7, tw=9.8, k=30 },
-            new SectionProperties { Name="C310x31",   Type=SectionType.Channel, d=305, bf=74, tf=12.7, tw=7.2, k=30 },
-            new SectionProperties { Name="C250x45",   Type=SectionType.Channel, d=254, bf=76, tf=11.1, tw=17.1, k=28 },
-            new SectionProperties { Name="C250x37",   Type=SectionType.Channel, d=254, bf=73, tf=11.1, tw=13.4, k=28 },
-            new SectionProperties { Name="C250x30",   Type=SectionType.Channel, d=254, bf=69, tf=11.1, tw=9.6, k=28 },
-            new SectionProperties { Name="C250x23",   Type=SectionType.Channel, d=254, bf=65, tf=11.1, tw=6.1, k=28 },
-            new SectionProperties { Name="C230x30",   Type=SectionType.Channel, d=229, bf=67, tf=10.5, tw=11.4, k=24 },
-            new SectionProperties { Name="C230x22",   Type=SectionType.Channel, d=229, bf=63, tf=10.5, tw=7.2, k=24 },
-            new SectionProperties { Name="C230x20",   Type=SectionType.Channel, d=229, bf=61, tf=10.5, tw=5.9, k=24 },
-            new SectionProperties { Name="C200x28",   Type=SectionType.Channel, d=203, bf=64, tf=9.9,  tw=12.4, k=22 },
-            new SectionProperties { Name="C200x21",   Type=SectionType.Channel, d=203, bf=59, tf=9.9,  tw=7.7, k=22 },
-            new SectionProperties { Name="C200x17",   Type=SectionType.Channel, d=203, bf=57, tf=9.9,  tw=5.6, k=22 },
-            new SectionProperties { Name="C180x22",   Type=SectionType.Channel, d=178, bf=58, tf=9.3,  tw=10.6, k=21 },
-            new SectionProperties { Name="C180x18",   Type=SectionType.Channel, d=178, bf=55, tf=9.3,  tw=8.0, k=21 },
-            new SectionProperties { Name="C180x15",   Type=SectionType.Channel, d=178, bf=53, tf=9.3,  tw=5.3, k=21 },
-            new SectionProperties { Name="C150x19",   Type=SectionType.Channel, d=152, bf=54, tf=8.7,  tw=11.1, k=21 },
-            new SectionProperties { Name="C150x16",   Type=SectionType.Channel, d=152, bf=51, tf=8.7,  tw=8.0, k=21 },
-            new SectionProperties { Name="C150x12",   Type=SectionType.Channel, d=152, bf=48, tf=8.7,  tw=5.1, k=21 },
-            new SectionProperties { Name="C130x13",   Type=SectionType.Channel, d=127, bf=47, tf=8.1,  tw=8.3, k=19 },
-            new SectionProperties { Name="C130x10",   Type=SectionType.Channel, d=127, bf=44, tf=8.1,  tw=4.8, k=19 },
-            new SectionProperties { Name="C100x11",   Type=SectionType.Channel, d=102, bf=43, tf=7.5,  tw=8.2, k=17 },
-            new SectionProperties { Name="C100x9",    Type=SectionType.Channel, d=102, bf=42, tf=7.5,  tw=6.3, k=17 },
-            new SectionProperties { Name="C100x8",    Type=SectionType.Channel, d=102, bf=40, tf=7.5,  tw=4.7, k=17 },
-            new SectionProperties { Name="C100x7",    Type=SectionType.Channel, d=102, bf=39, tf=7.5,  tw=3.2, k=17 },
-            new SectionProperties { Name="C75x9",     Type=SectionType.Channel, d=76,  bf=40, tf=6.9,  tw=9.0, k=16 },
-            new SectionProperties { Name="C75x7",     Type=SectionType.Channel, d=76,  bf=37, tf=6.9,  tw=6.6, k=16 },
-            new SectionProperties { Name="C75x6",     Type=SectionType.Channel, d=76,  bf=35, tf=6.9,  tw=4.3, k=16 },
-            new SectionProperties { Name="C75x5",     Type=SectionType.Channel, d=76,  bf=35, tf=6.9,  tw=3.4, k=16 },
+            // t2 = root flange thickness (T2 from SST col 29); r = k - t2
+            new SectionProperties { Name="C380x74",   Type=SectionType.Channel, d=381, bf=94, tf=16.5, tw=18.2, k=36, t2=22.8 },
+            new SectionProperties { Name="C380x60",   Type=SectionType.Channel, d=381, bf=89, tf=16.5, tw=13.2, k=36, t2=22.8 },
+            new SectionProperties { Name="C380x50",   Type=SectionType.Channel, d=381, bf=86, tf=16.5, tw=10.2, k=36, t2=22.8 },
+            new SectionProperties { Name="C310x45",   Type=SectionType.Channel, d=305, bf=80, tf=12.7, tw=13.0, k=30, t2=18.3 },
+            new SectionProperties { Name="C310x37",   Type=SectionType.Channel, d=305, bf=77, tf=12.7, tw=9.8,  k=30, t2=18.3 },
+            new SectionProperties { Name="C310x31",   Type=SectionType.Channel, d=305, bf=74, tf=12.7, tw=7.2,  k=30, t2=18.3 },
+            new SectionProperties { Name="C250x45",   Type=SectionType.Channel, d=254, bf=76, tf=11.1, tw=17.1, k=28, t2=16.0 },
+            new SectionProperties { Name="C250x37",   Type=SectionType.Channel, d=254, bf=73, tf=11.1, tw=13.4, k=28, t2=16.1 },
+            new SectionProperties { Name="C250x30",   Type=SectionType.Channel, d=254, bf=69, tf=11.1, tw=9.6,  k=28, t2=16.1 },
+            new SectionProperties { Name="C250x23",   Type=SectionType.Channel, d=254, bf=65, tf=11.1, tw=6.1,  k=28, t2=16.0 },
+            new SectionProperties { Name="C230x30",   Type=SectionType.Channel, d=229, bf=67, tf=10.5, tw=11.4, k=24, t2=15.1 },
+            new SectionProperties { Name="C230x22",   Type=SectionType.Channel, d=229, bf=63, tf=10.5, tw=7.2,  k=24, t2=15.2 },
+            new SectionProperties { Name="C230x20",   Type=SectionType.Channel, d=229, bf=61, tf=10.5, tw=5.9,  k=24, t2=15.1 },
+            new SectionProperties { Name="C200x28",   Type=SectionType.Channel, d=203, bf=64, tf=9.9,  tw=12.4, k=22, t2=14.2 },
+            new SectionProperties { Name="C200x21",   Type=SectionType.Channel, d=203, bf=59, tf=9.9,  tw=7.7,  k=22, t2=14.2 },
+            new SectionProperties { Name="C200x17",   Type=SectionType.Channel, d=203, bf=57, tf=9.9,  tw=5.6,  k=22, t2=14.2 },
+            new SectionProperties { Name="C180x22",   Type=SectionType.Channel, d=178, bf=58, tf=9.3,  tw=10.6, k=21, t2=13.3 },
+            new SectionProperties { Name="C180x18",   Type=SectionType.Channel, d=178, bf=55, tf=9.3,  tw=8.0,  k=21, t2=13.2 },
+            new SectionProperties { Name="C180x15",   Type=SectionType.Channel, d=178, bf=53, tf=9.3,  tw=5.3,  k=21, t2=13.3 },
+            new SectionProperties { Name="C150x19",   Type=SectionType.Channel, d=152, bf=54, tf=8.7,  tw=11.1, k=21, t2=12.3 },
+            new SectionProperties { Name="C150x16",   Type=SectionType.Channel, d=152, bf=51, tf=8.7,  tw=8.0,  k=21, t2=12.3 },
+            new SectionProperties { Name="C150x12",   Type=SectionType.Channel, d=152, bf=48, tf=8.7,  tw=5.1,  k=21, t2=12.3 },
+            new SectionProperties { Name="C130x13",   Type=SectionType.Channel, d=127, bf=47, tf=8.1,  tw=8.3,  k=19, t2=11.3 },
+            new SectionProperties { Name="C130x10",   Type=SectionType.Channel, d=127, bf=44, tf=8.1,  tw=4.8,  k=19, t2=11.4 },
+            new SectionProperties { Name="C100x11",   Type=SectionType.Channel, d=102, bf=43, tf=7.5,  tw=8.2,  k=17, t2=10.4 },
+            new SectionProperties { Name="C100x9",    Type=SectionType.Channel, d=102, bf=42, tf=7.5,  tw=6.3,  k=17, t2=10.5 },
+            new SectionProperties { Name="C100x8",    Type=SectionType.Channel, d=102, bf=40, tf=7.5,  tw=4.7,  k=17, t2=10.4 },
+            new SectionProperties { Name="C100x7",    Type=SectionType.Channel, d=102, bf=39, tf=7.5,  tw=3.2,  k=17, t2=10.5 },
+            new SectionProperties { Name="C75x9",     Type=SectionType.Channel, d=76,  bf=40, tf=6.9,  tw=9.0,  k=16, t2=9.5 },
+            new SectionProperties { Name="C75x7",     Type=SectionType.Channel, d=76,  bf=37, tf=6.9,  tw=6.6,  k=16, t2=9.4 },
+            new SectionProperties { Name="C75x6",     Type=SectionType.Channel, d=76,  bf=35, tf=6.9,  tw=4.3,  k=16, t2=9.5 },
+            new SectionProperties { Name="C75x5",     Type=SectionType.Channel, d=76,  bf=35, tf=6.9,  tw=3.4,  k=16, t2=9.5 },
 
             // ── L ANGLES — full CISC SST 12.1, exact Excel row order ────────
             new SectionProperties { Name="L254x254x32",  Type=SectionType.Angle, Hleg=254,  Vleg=254,  t=31.8 },
