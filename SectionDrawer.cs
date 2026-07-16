@@ -19,8 +19,9 @@ namespace CISCSections
     /// </summary>
     public class SectionDrawer
     {
-        private const string VIS_LAYER    = "CISC-VISIBLE";
-        private const string HIDDEN_LAYER = "CISC-HIDDEN";
+        private const string VIS_LAYER    = "6";
+        private const string HIDDEN_LAYER = "5";
+        private const string CENTER_LAYER = "3";
         private const string HIDDEN_LT    = "DASHED";
 
         private readonly Database         _db;
@@ -411,8 +412,9 @@ namespace CISCSections
 
         private void EnsureLayers()
         {
-            EnsureLayer(VIS_LAYER,    Color.FromColorIndex(ColorMethod.ByAci, 6),  ObjectId.Null);
-            EnsureLayer(HIDDEN_LAYER, Color.FromColorIndex(ColorMethod.ByAci, 5),  GetOrLoadLinetype(HIDDEN_LT));
+            EnsureLayer(VIS_LAYER,    Color.FromColorIndex(ColorMethod.ByAci, 6), ObjectId.Null);
+            EnsureLayer(HIDDEN_LAYER, Color.FromColorIndex(ColorMethod.ByAci, 5), GetOrLoadLinetype(HIDDEN_LT));
+            EnsureLayer(CENTER_LAYER, Color.FromColorIndex(ColorMethod.ByAci, 3), ObjectId.Null);
         }
 
         private void EnsureLayer(string name, Color color, ObjectId linetypeId)

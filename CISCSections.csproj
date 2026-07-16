@@ -5,6 +5,7 @@
     <AssemblyName>CISCSections</AssemblyName>
     <RootNamespace>CISCSections</RootNamespace>
     <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
     <PlatformTarget>x64</PlatformTarget>
     <Nullable>disable</Nullable>
     <LangVersion>latest</LangVersion>
@@ -19,6 +20,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="release\**\*.cs" />
+    <EmbeddedResource Remove="release\**\*" />
+    <None Remove="release\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- AutoCAD .NET API references — Copy Local = false so they are NOT bundled with the DLL -->
     <Reference Include="acdbmgd">
       <HintPath>$(AcadDir)\acdbmgd.dll</HintPath>
@@ -30,6 +37,10 @@
     </Reference>
     <Reference Include="accoremgd">
       <HintPath>$(AcadDir)\accoremgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AdWindows">
+      <HintPath>$(AcadDir)\AdWindows.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

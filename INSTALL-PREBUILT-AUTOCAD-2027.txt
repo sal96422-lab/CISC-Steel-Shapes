@@ -1,0 +1,22 @@
+CISC Steel Shapes - Easy Install Without Building
+=================================================
+
+For AutoCAD 2027 users, download the prebuilt bundle from:
+
+  prebuilt/AutoCAD-2027/CISCSections.bundle.zip
+
+Then follow the instructions in:
+
+  prebuilt/AutoCAD-2027/README-INSTALL.txt
+
+This install method does not require Visual Studio or the .NET SDK.
+
+After installation, open AutoCAD and run:
+
+  CISCINSERT
+
+Layer mapping:
+
+  - Solid / visible lines: layer 6
+  - Hidden lines: layer 5
+  - Centre lines: layer 3
