@@ -274,13 +274,14 @@ namespace CISCSections
                               bool hidden, double L)
         {
             double H = s.H, B = s.B, t = s.t;
-            double r = Math.Max(3.0, t * 0.5); // corner radius
+            double outerRadius = s.ro > 0 ? s.ro : Math.Max(3.0, t * 0.5);
+            double innerRadius = s.ri > 0 ? s.ri : Math.Max(1.0, outerRadius - t);
 
             if (view == ViewType.CrossSection)
             {
-                AddRoundedPolyline(ip, -B/2, -H/2, B, H, r, VIS_LAYER);
+                AddRoundedPolyline(ip, -B/2, -H/2, B, H, outerRadius, VIS_LAYER);
                 string innerLyr = hidden ? HIDDEN_LAYER : VIS_LAYER;
-                AddRoundedPolyline(ip, -B/2+t, -H/2+t, B-2*t, H-2*t, Math.Max(1.0, r-t), innerLyr);
+                AddRoundedPolyline(ip, -B/2+t, -H/2+t, B-2*t, H-2*t, innerRadius, innerLyr);
             }
             else if (view == ViewType.SideView)
             {
