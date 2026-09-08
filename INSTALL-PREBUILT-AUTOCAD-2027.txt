@@ -13,11 +13,18 @@ Manual fallback:
 
   prebuilt/AutoCAD-2027/CISCSections.bundle.zip
 
+The manual ZIP contains the current files:
+
+  CISCSections.bundle/PackageContents.xml
+  CISCSections.bundle/Contents/CISCSections.dll
+  CISCSections.bundle/Contents/LoadCISC.lsp
+
 Full instructions:
 
   prebuilt/AutoCAD-2027/README-INSTALL.txt
 
 These install methods do not require Visual Studio or the .NET SDK.
+They are intended for full AutoCAD 2027, not AutoCAD LT.
 
 Layer mapping:
 

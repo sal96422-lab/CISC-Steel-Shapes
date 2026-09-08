@@ -1,6 +1,8 @@
 CISC Steel Shapes - AutoCAD 2027 Easy Install
 =============================================
 
+Current package version: v1.2.4
+
 This folder contains a one-click installer and a manual prebuilt bundle.
 
 Use this method when you want to install the plugin without Visual Studio,
@@ -84,6 +86,7 @@ Use this only if the EXE is blocked by your company computer.
      %APPDATA%\Autodesk\ApplicationPlugins\CISCSections.bundle
      %APPDATA%\Autodesk\ApplicationPlugins\CISCSections.bundle\PackageContents.xml
      %APPDATA%\Autodesk\ApplicationPlugins\CISCSections.bundle\Contents\CISCSections.dll
+     %APPDATA%\Autodesk\ApplicationPlugins\CISCSections.bundle\Contents\LoadCISC.lsp
 
 8. Open AutoCAD.
 
@@ -111,15 +114,19 @@ Troubleshooting
 
 If AutoCAD says "Unknown command: CISCINSERT":
 
-1. Type:
+1. Confirm this is full AutoCAD 2027, not AutoCAD LT.
+
+2. If using the EXE, run it as the same Windows user who opens AutoCAD.
+
+3. Type:
 
      NETLOAD
 
-2. Select this file:
+4. Select this file:
 
      %APPDATA%\Autodesk\ApplicationPlugins\CISCSections.bundle\Contents\CISCSections.dll
 
-3. Type:
+5. Type:
 
      CISCINSERT
 

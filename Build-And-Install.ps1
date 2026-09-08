@@ -1,38 +1,34 @@
 <#
 .SYNOPSIS
-    Build CISCSections.dll and install it as an AutoCAD bundle.
+    Builds and installs the CISC Metric Sections AutoCAD plugin.
 
 .DESCRIPTION
-    1. Locates your AutoCAD installation to resolve API references.
-    2. Builds the project with MSBuild (Release | x64).
-    3. Copies the DLL + PackageContents.xml into the AutoCAD ApplicationPlugins
-       folder — AutoCAD loads every bundle in that folder automatically on startup.
-    4. You only need to run this script ONCE after a fresh clone/download.
-       If you later rebuild (e.g. after editing section data), re-run the script.
+    This is the advanced/source-code install method. Normal users should use
+    the prebuilt AutoCAD 2027 EXE in prebuilt\AutoCAD-2027 instead.
+
+    The script:
+      1. Finds AutoCAD.
+      2. Builds CISCSections.dll.
+      3. Copies PackageContents.xml, CISCSections.dll, and LoadCISC.lsp into
+         %APPDATA%\Autodesk\ApplicationPlugins\CISCSections.bundle.
+      4. Adds LoadCISC.lsp to APPLOAD Startup Suite.
+      5. Registers CISCINSERT for AutoCAD command demand-loading.
 
 .PREREQUISITES
-    - .NET Framework 4.8 Developer Pack
-        https://dotnet.microsoft.com/download/dotnet-framework/net48
-    - MSBuild (comes with Visual Studio or "Build Tools for Visual Studio")
-    - AutoCAD 2019 or later (64-bit)
+    - Full AutoCAD 2027, 64-bit.
+    - Visual Studio 2022 or the .NET 10 SDK.
 
 .NOTES
-    Run this script from the CISCSections\ folder:
-        cd "<path to CISCSections>"
-        .\Build-And-Install.ps1
-
-    To target a different AutoCAD year (e.g. 2022):
-        .\Build-And-Install.ps1 -AcadYear 2022
+    Run from this folder:
+        powershell -ExecutionPolicy Bypass -File .\Build-And-Install.ps1
 #>
 
 param(
-    [string]$AcadYear = ""   # e.g. "2024" — leave blank to auto-detect
+    [string]$AcadYear = "2027"
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
-
-# ─── 1. Find AutoCAD installation ───────────────────────────────────────────
 
 function Find-AutoCAD {
     param([string]$Year)
@@ -43,128 +39,147 @@ function Find-AutoCAD {
     )
 
     foreach ($root in $roots) {
-        if (-not (Test-Path $root)) { continue }
+        if (-not (Test-Path -LiteralPath $root)) { continue }
 
-        $dirs = Get-ChildItem $root -Directory -Filter "AutoCAD*" |
-                Sort-Object Name -Descending
+        $dirs = Get-ChildItem -LiteralPath $root -Directory -Filter "AutoCAD*" |
+            Sort-Object Name -Descending
 
         foreach ($dir in $dirs) {
             if ($Year -and $dir.Name -notlike "*$Year*") { continue }
             $acad = Join-Path $dir.FullName "acad.exe"
-            if (Test-Path $acad) { return $dir.FullName }
+            if (Test-Path -LiteralPath $acad) { return $dir.FullName }
         }
     }
 
     return $null
 }
 
-Write-Host "╔══════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║  CISC Metric Sections — Build & Install Script  ║" -ForegroundColor Cyan
-Write-Host "╚══════════════════════════════════════════════════╝" -ForegroundColor Cyan
+function Add-LoadCiscToStartupSuites {
+    param([string]$LspPath)
 
-$acadDir = Find-AutoCAD -Year $AcadYear
+    $autoCadKey = "HKCU:\Software\Autodesk\AutoCAD"
+    if (-not (Test-Path -LiteralPath $autoCadKey)) { return 0 }
 
-if (-not $acadDir) {
-    Write-Error ("AutoCAD installation not found under C:\Program Files\Autodesk\.`n" +
-                 "Set the AcadDir property manually in CISCSections.csproj, then re-run.")
-}
+    $updatedProfiles = 0
+    foreach ($releaseKey in Get-ChildItem -LiteralPath $autoCadKey) {
+        foreach ($productKey in Get-ChildItem -LiteralPath $releaseKey.PSPath) {
+            $profilesPath = Join-Path $productKey.PSPath "Profiles"
+            if (-not (Test-Path -LiteralPath $profilesPath)) { continue }
 
-Write-Host "AutoCAD found : $acadDir" -ForegroundColor Green
+            foreach ($profileKey in Get-ChildItem -LiteralPath $profilesPath) {
+                $startupPath = Join-Path $profileKey.PSPath "Dialogs\Appload\Startup"
+                New-Item -Path $startupPath -Force | Out-Null
 
-# ─── 2. Find MSBuild ────────────────────────────────────────────────────────
+                $item = Get-Item -LiteralPath $startupPath
+                $values = $item.GetValueNames()
+                $alreadyRegistered = $false
 
-function Find-MSBuild {
-    # VS 2022 / 2019
-    $vsPaths = @(
-        "${env:ProgramFiles}\Microsoft Visual Studio\2022\*\MSBuild\Current\Bin\MSBuild.exe",
-        "${env:ProgramFiles}\Microsoft Visual Studio\2019\*\MSBuild\Current\Bin\MSBuild.exe",
-        "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\*\MSBuild\Current\Bin\MSBuild.exe",
-        "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\*\MSBuild\Current\Bin\MSBuild.exe"
-    )
-    foreach ($p in $vsPaths) {
-        $found = Resolve-Path $p -ErrorAction SilentlyContinue
-        if ($found) { return $found[0].Path }
+                foreach ($valueName in $values) {
+                    if ($valueName -notlike "*Startup") { continue }
+                    $existing = [string]$item.GetValue($valueName)
+                    if ($existing -and ([Environment]::ExpandEnvironmentVariables($existing) -ieq $LspPath -or $existing -ieq $LspPath)) {
+                        $alreadyRegistered = $true
+                        break
+                    }
+                }
+
+                if ($alreadyRegistered) { continue }
+
+                $maxSlot = 0
+                foreach ($valueName in $values) {
+                    if ($valueName -notlike "*Startup") { continue }
+                    $prefix = $valueName.Substring(0, $valueName.Length - "Startup".Length)
+                    $slot = 0
+                    if ([int]::TryParse($prefix, [ref]$slot) -and $slot -gt $maxSlot) {
+                        $maxSlot = $slot
+                    }
+                }
+
+                $nextSlot = $maxSlot + 1
+                New-ItemProperty -LiteralPath $startupPath -Name "$($nextSlot)Startup" -Value $LspPath -PropertyType ExpandString -Force | Out-Null
+                New-ItemProperty -LiteralPath $startupPath -Name "NumStartup" -Value ([string]$nextSlot) -PropertyType String -Force | Out-Null
+                $updatedProfiles++
+            }
+        }
     }
 
-    # .NET SDK dotnet build fallback
-    $dotnet = (Get-Command dotnet -ErrorAction SilentlyContinue)?.Source
-    if ($dotnet) { return $dotnet }
-
-    return $null
+    return $updatedProfiles
 }
 
-$msbuild = Find-MSBuild
-if (-not $msbuild) {
-    Write-Error ("MSBuild not found. Install 'Build Tools for Visual Studio 2019/2022'`n" +
-                 "or the .NET SDK, then re-run.")
+function Add-DemandLoadRegistration {
+    param([string]$DllPath)
+
+    $autoCadKey = "HKCU:\Software\Autodesk\AutoCAD"
+    if (-not (Test-Path -LiteralPath $autoCadKey)) { return 0 }
+
+    $updatedProducts = 0
+    foreach ($releaseKey in Get-ChildItem -LiteralPath $autoCadKey) {
+        foreach ($productKey in Get-ChildItem -LiteralPath $releaseKey.PSPath) {
+            $appPath = Join-Path $productKey.PSPath "Applications\CISCSections"
+            $commandsPath = Join-Path $appPath "Commands"
+
+            New-Item -Path $commandsPath -Force | Out-Null
+            New-ItemProperty -LiteralPath $appPath -Name "DESCRIPTION" -Value "CISC Metric Sections" -PropertyType String -Force | Out-Null
+            New-ItemProperty -LiteralPath $appPath -Name "LOADCTRLS" -Value 12 -PropertyType DWord -Force | Out-Null
+            New-ItemProperty -LiteralPath $appPath -Name "LOADER" -Value $DllPath -PropertyType String -Force | Out-Null
+            New-ItemProperty -LiteralPath $appPath -Name "MANAGED" -Value 1 -PropertyType DWord -Force | Out-Null
+            New-ItemProperty -LiteralPath $commandsPath -Name "CISCINSERT" -Value "CISCINSERT" -PropertyType String -Force | Out-Null
+            $updatedProducts++
+        }
+    }
+
+    return $updatedProducts
 }
 
-Write-Host "MSBuild      : $msbuild" -ForegroundColor Green
+Write-Host "CISC Metric Sections - Advanced Build and Install" -ForegroundColor Cyan
 
-# ─── 3. Build ───────────────────────────────────────────────────────────────
-
-$proj    = Join-Path $PSScriptRoot "CISCSections.csproj"
-$outDir  = Join-Path $PSScriptRoot "bin\Release\net10.0-windows"
-
-Write-Host "`nBuilding project..." -ForegroundColor Yellow
-
-if ($msbuild -like "*dotnet*") {
-    & $msbuild build $proj -c Release /p:AcadDir="$acadDir" 2>&1
-} else {
-    & $msbuild $proj /p:Configuration=Release /p:Platform=x64 `
-               /p:AcadDir="$acadDir" /nologo /verbosity:minimal 2>&1
+$acadDir = Find-AutoCAD -Year $AcadYear
+if (-not $acadDir) {
+    throw "AutoCAD $AcadYear was not found under C:\Program Files\Autodesk. Install full AutoCAD $AcadYear or pass -AcadYear with the installed year."
 }
 
+Write-Host "AutoCAD found: $acadDir" -ForegroundColor Green
+
+$dotnet = (Get-Command dotnet -ErrorAction SilentlyContinue).Source
+if (-not $dotnet) {
+    throw "dotnet was not found. Install Visual Studio 2022 with .NET desktop development or install the .NET 10 SDK."
+}
+
+$project = Join-Path $PSScriptRoot "CISCSections.csproj"
+$outDir = Join-Path $PSScriptRoot "bin\Release\net10.0-windows"
+
+Write-Host "Building plugin..." -ForegroundColor Yellow
+& $dotnet build $project -c Release /p:AcadDir="$acadDir"
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "Build failed (exit code $LASTEXITCODE). Fix the errors above and retry."
+    throw "Build failed. Fix the errors above and retry."
 }
 
-Write-Host "Build succeeded." -ForegroundColor Green
-
-# ─── 4. Install bundle ──────────────────────────────────────────────────────
-
-$bundleRoot    = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\CISCSections.bundle"
-$bundleContent = Join-Path $bundleRoot "Contents"
-
-Write-Host "`nInstalling bundle to:`n  $bundleRoot" -ForegroundColor Yellow
-
-New-Item -ItemType Directory -Force -Path $bundleRoot    | Out-Null
-New-Item -ItemType Directory -Force -Path $bundleContent | Out-Null
-
-# Package manifest
-Copy-Item (Join-Path $PSScriptRoot "PackageContents.xml") -Destination $bundleRoot -Force
-
-# Plugin DLL
 $dll = Join-Path $outDir "CISCSections.dll"
-if (-not (Test-Path $dll)) {
-    # Fallback: look in any Release subfolder
-    $dll = Get-ChildItem $PSScriptRoot -Recurse -Filter "CISCSections.dll" |
-           Where-Object { $_.FullName -like "*Release*" } |
-           Select-Object -First 1 -ExpandProperty FullName
+if (-not (Test-Path -LiteralPath $dll)) {
+    throw "Cannot find built DLL: $dll"
 }
 
-if (-not $dll -or -not (Test-Path $dll)) {
-    Write-Error "Cannot find CISCSections.dll after build. Check the build output above."
-}
+$bundleRoot = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\CISCSections.bundle"
+$bundleContents = Join-Path $bundleRoot "Contents"
 
-Copy-Item $dll -Destination $bundleContent -Force
+Write-Host "Installing bundle to $bundleRoot" -ForegroundColor Yellow
+New-Item -ItemType Directory -Force -Path $bundleContents | Out-Null
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot "PackageContents.xml") -Destination $bundleRoot -Force
+Copy-Item -LiteralPath $dll -Destination $bundleContents -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot "LoadCISC.lsp") -Destination $bundleContents -Force
 
-# Optional: copy .pdb for debugging
-$pdb = [System.IO.Path]::ChangeExtension($dll, ".pdb")
-if (Test-Path $pdb) { Copy-Item $pdb -Destination $bundleContent -Force }
+$installedDll = Join-Path $bundleContents "CISCSections.dll"
+$installedLsp = Join-Path $bundleContents "LoadCISC.lsp"
 
-Write-Host @"
+Write-Host "Registering APPLOAD Startup Suite..." -ForegroundColor Yellow
+$startupCount = Add-LoadCiscToStartupSuites -LspPath $installedLsp
 
-╔════════════════════════════════════════════════════════════╗
-║  Installation complete!                                    ║
-║                                                            ║
-║  Installed to:                                             ║
-║  %APPDATA%\Autodesk\ApplicationPlugins\CISCSections.bundle ║
-║                                                            ║
-║  NEXT STEP: Restart AutoCAD, then type:  CISCINSERT        ║
-║                                                            ║
-║  The plugin loads automatically every time AutoCAD starts. ║
-║  You do NOT need to run this script again unless you       ║
-║  update the source code.                                   ║
-╚════════════════════════════════════════════════════════════╝
-"@ -ForegroundColor Green
+Write-Host "Registering CISCINSERT demand-load command..." -ForegroundColor Yellow
+$commandCount = Add-DemandLoadRegistration -DllPath $installedDll
+
+Write-Host ""
+Write-Host "Installation complete." -ForegroundColor Green
+Write-Host "Startup Suite profiles updated: $startupCount"
+Write-Host "AutoCAD command registrations updated: $commandCount"
+Write-Host ""
+Write-Host "Open AutoCAD $AcadYear and type: CISCINSERT"
