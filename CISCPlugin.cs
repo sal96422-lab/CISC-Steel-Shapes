@@ -95,18 +95,32 @@ namespace CISCSections
             doc?.Editor.WriteMessage(
                 "\nCISC Metric Sections loaded. Select options in the CISC Sections ribbon tab, then click Insert Section.\n");
 
-            if (ComponentManager.Ribbon != null)
-                AddRibbonTab();
-            else
-                ComponentManager.ItemInitialized += OnRibbonReady;
+            ComponentManager.ItemInitialized += OnRibbonReady;
+            AcadApp.Idle += OnAutoCadIdle;
+            TryAddRibbonTab();
         }
 
         private void OnRibbonReady(object sender, RibbonItemEventArgs e)
         {
-            if (ComponentManager.Ribbon != null)
+            TryAddRibbonTab();
+        }
+
+        private void OnAutoCadIdle(object sender, EventArgs e)
+        {
+            TryAddRibbonTab();
+        }
+
+        private void TryAddRibbonTab()
+        {
+            if (ComponentManager.Ribbon != null && ComponentManager.Ribbon.FindTab(TAB_ID) == null)
+            {
+                AddRibbonTab();
+            }
+
+            if (ComponentManager.Ribbon != null && ComponentManager.Ribbon.FindTab(TAB_ID) != null)
             {
                 ComponentManager.ItemInitialized -= OnRibbonReady;
-                AddRibbonTab();
+                AcadApp.Idle -= OnAutoCadIdle;
             }
         }
 
@@ -297,7 +311,11 @@ namespace CISCSections
             return bmp;
         }
 
-        public void Terminate() { }
+        public void Terminate()
+        {
+            ComponentManager.ItemInitialized -= OnRibbonReady;
+            AcadApp.Idle -= OnAutoCadIdle;
+        }
 
         // ─── Main command ─────────────────────────────────────────────────────
 
