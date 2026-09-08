@@ -1,5 +1,5 @@
-; Auto-loads the CISC Metric Sections .NET plugin on AutoCAD startup.
-(defun s::startup ( / dllPath)
+; Auto-loads the CISC Metric Sections .NET plugin when this LISP is loaded.
+(defun CISCLoadPlugin ( / dllPath)
   (setq dllPath
     (strcat (getenv "APPDATA")
             "\\Autodesk\\ApplicationPlugins\\CISCSections.bundle\\Contents\\CISCSections.dll")
@@ -13,3 +13,5 @@
   )
   (princ)
 )
+
+(CISCLoadPlugin)
