@@ -1,7 +1,7 @@
-CISC Steel Shapes - Prebuilt AutoCAD 2027 Bundle
-================================================
+CISC Steel Shapes - AutoCAD 2027 Easy Install
+=============================================
 
-This folder contains a prebuilt AutoCAD plugin bundle.
+This folder contains a one-click installer and a manual prebuilt bundle.
 
 Use this method when you want to install the plugin without Visual Studio,
 without the .NET SDK, and without building the source code.
@@ -10,6 +10,7 @@ without the .NET SDK, and without building the source code.
 Files
 -----
 
+  CISC-Steel-Shapes-Installer-AutoCAD-2027.exe
   CISCSections.bundle.zip
 
 
@@ -29,6 +30,32 @@ You do not need:
 
 Install
 -------
+
+1. Close AutoCAD.
+
+2. Download:
+
+     CISC-Steel-Shapes-Installer-AutoCAD-2027.exe
+
+3. Double-click the EXE installer.
+
+4. Wait until it says the installation finished.
+
+5. Open AutoCAD.
+
+6. If AutoCAD asks whether to load LoadCISC.lsp or the plugin DLL, choose:
+
+     Always Load
+
+7. Type this command:
+
+     CISCINSERT
+
+
+Manual Install From Zip
+-----------------------
+
+Use this only if the EXE is blocked by your company computer.
 
 1. Close AutoCAD.
 
