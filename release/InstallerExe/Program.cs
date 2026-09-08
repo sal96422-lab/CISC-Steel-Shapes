@@ -129,6 +129,38 @@ static int AddLoadCiscToStartupSuites(string lspPath)
     return updatedProfiles;
 }
 
+static int AddDemandLoadRegistration(string dllPath)
+{
+    int updatedProducts = 0;
+    using RegistryKey? autoCadKey = Registry.CurrentUser.OpenSubKey(@"Software\Autodesk\AutoCAD", writable: true);
+    if (autoCadKey is null) return 0;
+
+    foreach (string releaseName in autoCadKey.GetSubKeyNames())
+    {
+        using RegistryKey? releaseKey = autoCadKey.OpenSubKey(releaseName, writable: true);
+        if (releaseKey is null) continue;
+
+        foreach (string productName in releaseKey.GetSubKeyNames())
+        {
+            using RegistryKey? productKey = releaseKey.OpenSubKey(productName, writable: true);
+            if (productKey is null) continue;
+
+            using RegistryKey appKey = productKey.CreateSubKey(@"Applications\CISCSections", writable: true);
+            appKey.SetValue("DESCRIPTION", "CISC Metric Sections", RegistryValueKind.String);
+            appKey.SetValue("LOADCTRLS", 12, RegistryValueKind.DWord);
+            appKey.SetValue("LOADER", dllPath, RegistryValueKind.String);
+            appKey.SetValue("MANAGED", 1, RegistryValueKind.DWord);
+
+            using RegistryKey commandsKey = appKey.CreateSubKey("Commands", writable: true);
+            commandsKey.SetValue("CISCINSERT", "CISCINSERT", RegistryValueKind.String);
+
+            updatedProducts++;
+        }
+    }
+
+    return updatedProducts;
+}
+
 try
 {
     Console.Title = "CISC Steel Shapes Installer";
@@ -199,6 +231,9 @@ try
     Step("Adding LoadCISC.lsp to AutoCAD Startup Suite");
     int updatedProfiles = AddLoadCiscToStartupSuites(lspFile);
 
+    Step("Adding CISCINSERT AutoCAD command registration");
+    int updatedDemandLoadProducts = AddDemandLoadRegistration(dllFile);
+
     Step("Installed successfully");
     Console.ForegroundColor = ConsoleColor.Green;
     Console.WriteLine("Installed folder:");
@@ -229,6 +264,7 @@ try
     }
 
     Console.WriteLine($"Startup Suite profiles updated: {updatedProfiles}");
+    Console.WriteLine($"AutoCAD command registrations updated: {updatedDemandLoadProducts}");
     Console.WriteLine();
     Console.WriteLine("Next steps:");
     Console.WriteLine("1. Open AutoCAD.");
